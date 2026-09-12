@@ -7,7 +7,7 @@ import net.minecraft.server.packs.AbstractPackResources;
 import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
-import net.minecraft.server.packs.metadata.MetadataSectionSerializer;
+import net.minecraft.server.packs.metadata.MetadataSectionType;
 import net.minecraft.server.packs.metadata.pack.PackMetadataSection;
 import net.minecraft.server.packs.resources.IoSupplier;
 import net.minecraft.server.packs.repository.Pack;
@@ -33,7 +33,7 @@ import java.util.Set;
  * <p>真实元数据优先，只有确实缺失的 section 才会被替换。Forge 合并出的 {@code mod_resources}
  * 包通过 {@code net.minecraftforge.resource.DelegatingPackResources} 做了同样的事。
  *
- * @see AbstractPackResources#getMetadataSection(MetadataSectionSerializer)
+ * @see AbstractPackResources#getMetadataSection(MetadataSectionType)
  * @see net.minecraft.server.packs.repository.Pack#readPackMetadata(PackLocationInfo, Pack.ResourcesSupplier, int)
  */
 public class FallbackMetadataPackResources extends AbstractPackResources {
@@ -56,14 +56,14 @@ public class FallbackMetadataPackResources extends AbstractPackResources {
     @Nullable
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T getMetadataSection(MetadataSectionSerializer<T> serializer) throws IOException {
-        T section = this.delegate.getMetadataSection(serializer);
+    public <T> T getMetadataSection(MetadataSectionType<T> type) throws IOException {
+        T section = this.delegate.getMetadataSection(type);
         if (section != null) {
             return section;
         }
         // 按 section 名比较，与 Forge 的 DelegatingPackResources 一致：入参本身就是 section 的类型
         // 描述符，名称才是跨版本比较时唯一稳定的东西。
-        return PackMetadataSection.TYPE.getMetadataSectionName().equals(serializer.getMetadataSectionName())
+        return PackMetadataSection.TYPE.name().equals(type.name())
                 ? (T) this.fallbackMetadata
                 : null;
     }
