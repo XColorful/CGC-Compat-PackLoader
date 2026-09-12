@@ -293,3 +293,89 @@ String id = PACK_ID_PREFIX + directory.getFileName() + "/" + name;
 ```
 
 配合 `:39` 的 `private static final String PACK_ID_PREFIX = CgccPackLoader.MOD_ID;`（你同时去掉了原来的 `+ ""` 和紧跟的 `/`），id 现在会拼成 `cgccpackloadertacz/guns.zip`——模组 id 和目录名粘在一起了。不同目录仍能区分，不会实际冲突（除非出现 `a` + `b/x` 与 `ab` + `x` 这种病态组合），只是可读性明显变差。如果是有意为之就忽略。
+
+# 
+---
+
+```
+模组现在移植到1.20.2
+- 修改core, forge-compat目录下代码，直到这两部分编译通过
+- core第一个编译不过的地方为dev.xcolorful.cgccompat.packloader.core.resource.ExtraPackRepositorySource#resourcesSupplier
+- 当完成forge-compat编译通过后，浏览PR #1，在neoforge-compat完成当前1.20.2forge完成时的版本，对照着实现
+
+移植规范：
+- 如果某个现有@Override函数变为非Override，则注释掉@Override这一行，然后在头上一行加上@Deprecated(since = "1.20.2")，而不要把这个函数删掉；除非这个函数仅仅是MC原版改了个函数名
+```
+
+# 
+
+I'll start by reading the project docs and the mentioned file.
+
+Now let me inspect the actual 1.20.2 API via IDEA MCP.
+
+Now I have the full API picture. Let me make the core changes.
+
+Now the `createPack` wrapper needs to implement both supplier methods.
+
+Now let me compile core and forge-compat.
+
+Core and forge-compat now compile. Let me update tasks and look at PR #1 and neoforge-compat.
+
+Let me read PR #1's diff, as instructed.
+
+PR #1 is the 1.20.1 implementation (no neoforge), so forge-compat is my only reference. Let me inspect the NeoForge 20.2.93 API.
+
+NeoForge 20.2.93 API confirmed. Now let me create the neoforge-compat sources mirroring forge-compat.
+
+Now let me compile neoforge-compat.
+
+neoforge-compat compiles. Let me verify the Forge-side `@see` pointer I noticed was stale.
+
+Let me verify the full build for all three modules.
+
+移植完成，三个模块都能编译通过。下面是改动清单与验证结果。
+
+## core（2 处编译修复）
+
+1. [ExtraPackRepositorySource.java:107](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/core/resource/ExtraPackRepositorySource.java:107)
+    
+    - 1.20.2 把 `Pack.ResourcesSupplier.open(String)` 拆成了 `openPrimary(String)` / `openFull(String, Pack.Info)`，所以返回值的 lambda 换成了匿名类。
+    - `new PathPackResources(packId, path, false)` / `new FilePackResources(packId, file, false)` 在 1.20.2 变成了 supplier：改用原版的 `PathPackResources.PathResourcesSupplier` 和 `FilePackResources.FileResourcesSupplier`（`FolderRepositorySource` 内部也是这么做的）。
+    - 默认文件系统的判断保留：`FileResourcesSupplier` 内部仍走 `File`。
+2. [FallbackMetadataPackResources.java:49](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/core/resource/FallbackMetadataPackResources.java:49)
+    
+    - 1.20.2 的 `PackMetadataSection` 变成了 record，多了 `Optional<InclusiveRange<Integer>> supportedFormats`，补 `Optional.empty()`（等价于只声明单一格式）。
+
+## forge-compat（1 处）
+
+`@see ServerPacksSource#createPackRepository(Path)` 里的方法在 1.20.2 已改为 `createPackRepository(Path, DirectoryValidator)`，同步更新了链接（core 的 `ExtraPackFinder` 同样一处也改了）。`ClientModLoader`、`AddPackFindersEvent`、`FMLLoader`、`FMLPaths` 在 1.20.2 都还在，未动。
+
+## neoforge-compat（4 个新文件，对照 forge-compat 实现）
+
+- [CgccPackLoaderNeoForge.java](app://localhost/epitaxy/neoforge-compat/src/main/java/dev/xcolorful/cgccompat/packloader/neoforge/CgccPackLoaderNeoForge.java)
+- [NeoForgeDataPackListener.java](app://localhost/epitaxy/neoforge-compat/src/main/java/dev/xcolorful/cgccompat/packloader/neoforge/resource/NeoForgeDataPackListener.java)
+- [CgccPackLoaderNeoForgeClient.java](app://localhost/epitaxy/neoforge-compat/src/main/java/dev/xcolorful/cgccompat/packloader/neoforgeclient/CgccPackLoaderNeoForgeClient.java)
+- [NeoForgeClientResourcePackListener.java](app://localhost/epitaxy/neoforge-compat/src/main/java/dev/xcolorful/cgccompat/packloader/neoforgeclient/resource/NeoForgeClientResourcePackListener.java)
+
+NeoForge 20.2.93 的差异点：`@Mod` 只有 `value()`（没有 `modid()` 别名）；`Mod.EventBusSubscriber.Bus` 的枚举值是 `FORGE` / `MOD`（默认 `FORGE`，`AddPackFindersEvent` 是 `IModBusEvent`，所以必须显式写 `bus = Bus.MOD`）；`Dist` 在 `net.neoforged.api.distmarker`。资源文件（`mods.toml` / `pack.mcmeta`）继续由 core 统一提供，`neoforge-compat/build.gradle` 里已配好。
+
+## 验证
+
+`./gradlew :core:build :forge-compat:build :neoforge-compat:build` → **BUILD SUCCESSFUL**，无警告。`@Override` 全部仍然有效（编译器会校验），所以移植规范里那条 `@Deprecated(since = "1.20.2")` 的规则本次没有触发。
+
+未做游戏内验证（仓库里没有可启动的运行环境），包是否真的出现在选择界面仍需你实测。也没有提交。
+
+## 一处需要你决定
+
+我查了 1.20.2 内置的 `version.json`：`pack_version` 是 `{"resource": 18, "data": 18}`。但 `CgccPackLoader.PACK_FORMAT` 和 `gradle.properties` 里的 `pack_format` 都还是 **15**（1.20.1 的值）。这不是编译问题，但会影响运行时——回退元数据生成的描述符以及模组自带包的 `pack.mcmeta` 都会被标成与 1.20.2 不兼容。改不改由你定：
+
+明白，`pack_format` 保持 15 不动，我只是报告。
+
+最终状态：
+
+- **core**：`ExtraPackRepositorySource`（supplier 拆成 `openPrimary`/`openFull` + 改用原版两个 `ResourcesSupplier`）、`FallbackMetadataPackResources`（`PackMetadataSection` 多出的 `supportedFormats` 补 `Optional.empty()`）——已编译通过。
+- **forge-compat**：仅同步了一个失效的 `@see` 链接（`createPackRepository` 在 1.20.2 多了 `DirectoryValidator` 参数），代码本身无需改动。
+- **neoforge-compat**：新增 4 个类，对照 forge-compat 实现，已编译通过。
+- 三个模块 `./gradlew ...:build` 全部成功，无警告；未提交，等你 review。
+
+known issue（按你的选择未处理）：`PACK_FORMAT` 与 `gradle.properties` 的 `pack_format` 仍是 1.20.1 的 15，而 1.20.2 是 18。
