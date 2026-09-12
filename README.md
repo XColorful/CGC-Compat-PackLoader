@@ -4,6 +4,8 @@
 
 # 自定义枪械永续兼容：包加载
 
+添加额外的数据包和资源包目录。
+
 ---
 
 `该模组可选择安装在服务端、客户端或双端`
@@ -11,7 +13,7 @@
 ## 主要特色
 
 这个模组一共做两件事情：
-1. 添加 _./tacz/_ 目录作为额外的数据包和资源包目录
+1. 将`./config/cgccpackloader.json`中的目录列表作为额外的数据包和资源包目录，默认添加 _./tacz/_ 目录
 2. 允许该目录下没有`pack.mcmeta`的数据包和资源包正常加载
 
 ## 内容披露
@@ -26,6 +28,8 @@
 
 # CGC Compat: PackLoader
 
+Add additional data pack and resource pack directories.
+
 ---
 
 `This mod can be installed on the server, client, or both.`
@@ -33,7 +37,7 @@
 ## Main Features
 
 This mod does two things:
-- Adds _./tacz/_ as an additional data pack and resource pack directory
+- Uses the directory list in `./config/cgccpackloader.json` as additional data pack and resource pack directories, with _./tacz/_ added by default
 - Allows data packs and resource packs in this directory without `pack.mcmeta` to load normally
 
 ## Content disclosures
