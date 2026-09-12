@@ -3,6 +3,7 @@ package dev.xcolorful.cgccompat.packloader.neoforgeclient.resource;
 import dev.xcolorful.cgccompat.packloader.CgccPackLoader;
 import dev.xcolorful.cgccompat.packloader.client.resource.ClientResourcePackFinder;
 import net.minecraft.server.packs.PackType;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddPackFindersEvent;
@@ -16,7 +17,7 @@ import net.neoforged.neoforge.event.AddPackFindersEvent;
  *
  * @see net.neoforged.neoforge.client.loading.ClientModLoader
  */
-@EventBusSubscriber(modid = CgccPackLoader.MOD_ID)
+@EventBusSubscriber(value = Dist.CLIENT, modid = CgccPackLoader.MOD_ID)
 public final class NeoForgeClientResourcePackListener {
 
     private NeoForgeClientResourcePackListener() {
