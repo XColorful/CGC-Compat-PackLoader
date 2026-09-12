@@ -21,7 +21,7 @@ public class CgccPackLoaderNeoForge {
         CgccPackLoader.init(FMLPaths.GAMEDIR.get(),
                 FMLPaths.CONFIGDIR.get());
 
-        Dist dist = FMLLoader.getDist();
+        Dist dist = FMLLoader.getCurrent().getDist();
 
         if (dist.isClient()) {
             _CgccPackLoaderNeoForgeClient.init();
