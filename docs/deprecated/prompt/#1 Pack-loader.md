@@ -212,3 +212,84 @@ id 形如 `cgccpackloader/tacz/<名称>`。
 
 1. 我把平台侧的 `forge.resource` / `forgeclient.resource` 类**并入了两个 Home.md 的「平台侧」小节**，因为仓库里没有 forge 模块的 Home.md。若你想独立建档，我可以拆出去。
 2. `CgccPackLoader` 位于 `dev.xcolorful.cgccompat.packloader`（不是 `.core`），我按「core 模块主类」处理，在两个 Home.md 里以引用行说明。若你希望严格按包路径归属，我改。
+
+# 
+
+```
+将所有CgccPackLoader#LOGGER调用的日志改成英文log
+```
+
+# 
+
+Let me read the current state of all files to find every `CgccPackLoader.LOGGER` call.
+
+8 log calls to translate. Let me read the two files first.
+
+8 处 `CgccPackLoader.LOGGER` 调用的消息已全部改为英文，编译通过且无警告。
+
+|文件|原（中文）|现（英文）|
+|---|---|---|
+|ExtraPackConfig:61|忽略 {} 中非法的包目录 '{}'|`Ignoring invalid pack directory '{}' in {}`|
+|ExtraPackConfig:78|读取 {} 失败，不会加载任何额外包目录|`Failed to read {}; no extra pack directories will be loaded`|
+|ExtraPackConfig:91|已创建 {}，默认包目录为 {}|`Created {} with default pack directories {}`|
+|ExtraPackConfig:93|创建 {} 失败|`Failed to create {}`|
+|ExtraPackRepositorySource:75|额外包目录 {} 不存在，已跳过|`Extra pack directory {} does not exist, skipping`|
+|ExtraPackRepositorySource:87|发现非包条目 '{}'，已忽略|`Found non-pack entry '{}', ignoring`|
+|ExtraPackRepositorySource:96|列出 {} 中的包失败|`Failed to list packs in {}`|
+|ExtraPackRepositorySource:112|读取 '{}' 的属性失败，已忽略|`Failed to read properties of '{}', ignoring`|
+
+两点说明：
+
+1. 第 1 条的**参数顺序**随语序调整了（原文 `configFile, entry` → 现 `entry, configFile`），否则英文句子里的位置会对不上；其余 7 条参数与占位符数量不变。后 3 条（`Found non-pack entry`、`Failed to read properties of`、`Failed to list packs in`）刻意沿用了原版 `FolderRepositorySource` 的同款措辞，方便和原版日志一起 grep。
+2. javadoc 仍是中文，未动；只改了日志消息。
+
+另外提一句：你把 `PACK_FORMAT` / `FILE_NAME` 上提到了 `CgccPackLoader`，我上次写的 Home.md 里那条 `CgccPackLoader` 说明只提到「保存游戏目录与配置文件路径」，没提这两个常量——功能描述没写错，只是不全。要不要我补一句？
+
+# 
+
+```
+你检查现在文档里是否有表述需要更新的，不得把我删掉的板块加回去
+```
+
+# 
+
+Let me read the current state of all docs (they may have changed on disk) and compare against the current code.
+
+Checked all docs against the current code. One entry is factually wrong; let me fix that wording only.
+
+检查完所有文档（`docs/README.md`、`docs/architecture/Home.md`、`core/Home.md`、`client/Home.md`、`docs/deprecated/README.md`、根 `README.md`）与当前代码的对应关系。
+
+## 已改：1 处表述确实错了
+
+[core/Home.md](app://localhost/epitaxy/docs/architecture/core/Home.md) 的 `FallbackMetadataPackResources` 条目：
+
+- `以目录名为描述` → `以文件夹名/压缩包名为描述`（英文半同步改为 `described by the folder or archive name`）
+
+理由：`ExtraPackRepositorySource:136` 是 `Component.literal(entry.getFileName())`，描述取的是**子项名**——子项可能是 `.zip`，那时它是压缩包名而不是目录名。而 zip 恰恰是 TaCZ 包的主要形态，所以这不是抠字眼。这也和根 README 自己的「文件夹名称/资源包压缩包名称」措辞一致。
+
+## 其余检查结果（未改，均与代码一致）
+
+|位置|结论|
+|---|---|
+|core/Home.md 其余 3 条|一致|
+|client/Home.md 唯一一条|一致|
+|docs/architecture/Home.md|仅导航，一致|
+|docs/README.md、docs/deprecated/README.md|与代码无关|
+
+有一处边界情况说明一下：core/Home.md 里 `ExtraPackConfig` 那条提到 `cgccpackloader.json`，现在这个名字已由 `CgccPackLoader.FILE_NAME` 定义并以参数传入，`ExtraPackConfig` 本身不再认识它。**但你删掉 `CgccPackLoader` 条目后，这里是文档中唯一出现配置文件名的地方**，删掉反而丢信息，所以我保留了。
+
+你删掉的板块（platform 侧的 `forge.resource` / `forgeclient.resource`、client 的`主类`、core 的 `CgccPackLoader` 说明）我都没有加回去。
+
+## 需要你决定（涉及行为，不只是改字）
+
+根 README 写「允许该目录下没有 `pack.mcmeta` 的数据包和资源包正常加载」，但资源包现在是 `required=false`，只会出现在选择界面、需要玩家手动启用才会生效（数据包因为 `PackSource.DEFAULT` 会自动启用）。README 也完全没提 `cgccpackloader.json`。要不要补一句说明？还是你其实想让资源包也自动加载（即改 `required`）？
+
+## 顺带一个代码问题（按你的要求：看着不对就说，不自己改）
+
+[ExtraPackRepositorySource:135](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/core/resource/ExtraPackRepositorySource.java:135)
+
+```java
+String id = PACK_ID_PREFIX + directory.getFileName() + "/" + name;
+```
+
+配合 `:39` 的 `private static final String PACK_ID_PREFIX = CgccPackLoader.MOD_ID;`（你同时去掉了原来的 `+ ""` 和紧跟的 `/`），id 现在会拼成 `cgccpackloadertacz/guns.zip`——模组 id 和目录名粘在一起了。不同目录仍能区分，不会实际冲突（除非出现 `a` + `b/x` 与 `ab` + `x` 这种病态组合），只是可读性明显变差。如果是有意为之就忽略。

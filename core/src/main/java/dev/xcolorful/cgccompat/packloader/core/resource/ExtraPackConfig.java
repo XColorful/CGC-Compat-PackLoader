@@ -58,7 +58,7 @@ public final class ExtraPackConfig {
             try {
                 directories.add(gameDir.resolve(entry).normalize());
             } catch (InvalidPathException e) {
-                CgccPackLoader.LOGGER.warn("忽略 {} 中非法的包目录 '{}'", configFile, entry, e);
+                CgccPackLoader.LOGGER.warn("Ignoring invalid pack directory '{}' in {}", entry, configFile, e);
             }
         }
         return List.copyOf(directories);
@@ -75,7 +75,7 @@ public final class ExtraPackConfig {
             return entries == null ? List.of() : entries;
         } catch (IOException | JsonParseException e) {
             // 该文件由用户维护，出错时保持原样而不是覆盖它。
-            CgccPackLoader.LOGGER.error("读取 {} 失败，不会加载任何额外包目录", configFile, e);
+            CgccPackLoader.LOGGER.error("Failed to read {}; no extra pack directories will be loaded", configFile, e);
             return List.of();
         }
     }
@@ -88,9 +88,9 @@ public final class ExtraPackConfig {
             try (BufferedWriter writer = Files.newBufferedWriter(configFile, StandardCharsets.UTF_8)) {
                 GSON.toJson(entries, writer);
             }
-            CgccPackLoader.LOGGER.info("已创建 {}，默认包目录为 {}", configFile, entries);
+            CgccPackLoader.LOGGER.info("Created {} with default pack directories {}", configFile, entries);
         } catch (IOException e) {
-            CgccPackLoader.LOGGER.error("创建 {} 失败", configFile, e);
+            CgccPackLoader.LOGGER.error("Failed to create {}", configFile, e);
         }
     }
 }

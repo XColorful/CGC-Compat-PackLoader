@@ -72,7 +72,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
     public void loadPacks(Consumer<Pack> consumer) {
         for (Path directory : this.directories) {
             if (!Files.isDirectory(directory)) {
-                CgccPackLoader.LOGGER.warn("额外包目录 {} 不存在，已跳过", directory);
+                CgccPackLoader.LOGGER.warn("Extra pack directory {} does not exist, skipping", directory);
                 continue;
             }
             this.loadDirectory(directory, consumer);
@@ -84,7 +84,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
             for (Path entry : entries) {
                 Pack.ResourcesSupplier supplier = resourcesSupplier(entry);
                 if (supplier == null) {
-                    CgccPackLoader.LOGGER.info("发现非包条目 '{}'，已忽略", entry);
+                    CgccPackLoader.LOGGER.info("Found non-pack entry '{}', ignoring", entry);
                     continue;
                 }
                 Pack pack = this.createPack(directory, entry, supplier);
@@ -93,7 +93,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
                 }
             }
         } catch (IOException e) {
-            CgccPackLoader.LOGGER.error("列出 {} 中的包失败", directory, e);
+            CgccPackLoader.LOGGER.error("Failed to list packs in {}", directory, e);
         }
     }
 
@@ -109,7 +109,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
         try {
             attributes = Files.readAttributes(entry, BasicFileAttributes.class);
         } catch (IOException e) {
-            CgccPackLoader.LOGGER.warn("读取 '{}' 的属性失败，已忽略", entry, e);
+            CgccPackLoader.LOGGER.warn("Failed to read properties of '{}', ignoring", entry, e);
             return null;
         }
 
