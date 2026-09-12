@@ -406,3 +406,81 @@ The mod port to 1.20.4 is a different worktree — let me locate it first.
 2. `gradle.properties:40` 的 `pack_format` 仍是 **15**，它管的是模组自带 `pack.mcmeta`，不是主类里的常量（这点和 1.20.2 那次一样）。
 
 未提交，等你 review。
+
+# 
+---
+
+```
+现在继续接着./docs/deprecated/prompt/#1 Pack-loader.md移植到1.21.1forge，修改直到编译通过
+该分支不需要处理neoforge侧
+```
+
+# 
+
+I'll start by reading the porting prompt and understanding the current state.
+
+Let me check the current state of the project and try a compile to see where things stand.
+
+The structure exists. Let me read the source files and start a compile in parallel.
+
+Build fails on toolchain resolution (needs Java 21). Let me find available JDKs.
+
+Found JDK 21 at `E:\Software\Minecraft\JDK\jdk-21.0.8`. Let me point Gradle at it.
+
+Now real 1.21.1 API errors. Let me locate the mapped Minecraft sources jar to inspect exact signatures.
+
+Found the 1.21.1 mapped sources jar. Let me extract the relevant vanilla pack classes.
+
+Let me check the porting rule memory and the remaining core file.
+
+Now let me check the Forge-side APIs and `IForgePackResources` (which `PackResources` now extends).
+
+`IForgePackResources` adds only default methods — good. Now let me make the core changes.
+
+Now the supplier constructors and `createPack`.
+
+Core and forge-compat compile. Let me run the full build to catch anything else.
+
+Build passes. Let me verify the `@see` porting references are still accurate for 1.21.1.
+
+Let me grep for any remaining stale API references across the source tree.
+
+Let me verify the Forge annotations are actually retained in the compiled classes.
+
+Let me do a clean recompile to confirm there are no Java warnings.
+
+移植完成，`core` 与 `forge-compat` 编译通过、零警告。
+
+## 改动（仅 core 两个文件）
+
+[ExtraPackRepositorySource.java](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/core/resource/ExtraPackRepositorySource.java) — 1.21.1 把包定位信息从「裸字符串 id」抽成了 `PackLocationInfo`，并新增 `PackSelectionConfig`：
+
+- `PathPackResources.PathResourcesSupplier(entry, false)` → `(entry)`，`FilePackResources.FileResourcesSupplier` 同理（1.21.1 去掉了 `isBuiltin` 那个 boolean 参数）
+- `Pack.ResourcesSupplier` 匿名类的两个方法随接口改签名：`openPrimary(String)` → `openPrimary(PackLocationInfo)`，`openFull(String, Pack.Info)` → `openFull(PackLocationInfo, Pack.Metadata)`
+- `Pack.readMetaAndCreate(id, desc, false, resources, type, Position.TOP, source)` → `readMetaAndCreate(PackLocationInfo, ResourcesSupplier, PackType, PackSelectionConfig)`
+- 新增 `DISCOVERED_PACK_SELECTION_CONFIG = new PackSelectionConfig(false, Pack.Position.TOP, false)`，与原版 `FolderRepositorySource` 完全一致；`packSource` 移进了 `PackLocationInfo`
+
+[FallbackMetadataPackResources.java](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/core/resource/FallbackMetadataPackResources.java) — `AbstractPackResources` 构造器改为收 `PackLocationInfo`，`PackResources` 新增 `location()`（`packId()` 变成由它派生的 default 方法）：
+
+- 构造器 `(PackType, String packId, ...)` → `(PackType, PackLocationInfo location, ...)`，`super(location)`
+- `@see Pack#readPackInfo(...)` → `Pack#readPackMetadata(...)`（1.21.1 的方法名）
+
+`forge-compat` 无需改动。没有引入新的平台 API，仍然只用原版公开扩展点，**不需要 Mixin/AT**。
+
+## 移植规范核对
+
+逐类检查过：没有任何 `@Override` 方法因本次 API 变化而失效（`loadPacks`、`FallbackMetadataPackResources` 的 6 个 override 编译器都认），所以 `@Deprecated(since = "1.21.1")` 那条规则**未触发**。`Pack.ResourcesSupplier` 的签名变化属「原版改了接口本身」，且旧签名在 1.21.1 已不存在，与 1.20.2 移植时处理 supplier 拆分的方式一致。
+
+## 验证
+
+- `./gradlew :core:build :forge-compat:build` → **BUILD SUCCESSFUL**，`--rerun-tasks` 复核后无 Java 警告。
+- 用 `javap -v` 确认编译产物里注解保留正确：数据包监听为 `bus=MOD`，客户端监听为 `bus=MOD, value=[Dist.CLIENT]`。
+- 核对 `@see` 目标在 1.21.1 确实存在：`ServerPacksSource.createPackRepository(Path, DirectoryValidator)` 会抛 `AddPackFindersEvent(SERVER_DATA)`，`ClientModLoader.begin` 抛 `CLIENT_RESOURCES`，`PackRepository.addPackFinder` 仍在。
+- **未做游戏内验证**：仓库里没有 `forge-compat/run/`，无法启动客户端/服务端，包是否真的出现在选择界面需要你在 IDEA 实测。
+
+## 两点报告（未改动）
+
+1. **构建环境**：Gradle 自动探测不到 JDK 21，我是用 `-Dorg.gradle.java.installations.paths=E:/Software/Minecraft/JDK/jdk-21.0.8` 指过去的。这是命令行参数，没动仓库配置。
+2. **`gradle.properties` 的 `pack_format=15`**：1.21.1 实际是资源包 **34**、数据包 **48**。主类已改用 `SharedConstants.RESOURCE_PACK_FORMAT`/`DATA_PACK_FORMAT` 动态取值，所以合成元数据不受影响；受影响的只有模组自带 `pack.mcmeta`（`core/src/main/resources/pack.mcmeta` 的 `${pack_format}`）。改不改由你定。
+
+未提交，等你 review。
