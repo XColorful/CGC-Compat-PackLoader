@@ -41,10 +41,10 @@ public class FallbackMetadataPackResources extends AbstractPackResources {
      * @param delegate 实际提供内容的包
      * @param description {@code delegate} 没有 {@code pack.mcmeta} 时使用的描述
      */
-    public FallbackMetadataPackResources(String packId, PackResources delegate, Component description) {
+    public FallbackMetadataPackResources(PackType packType, String packId, PackResources delegate, Component description) {
         super(packId, false);
         this.delegate = delegate;
-        this.fallbackMetadata = new PackMetadataSection(description, CgccPackLoader.PACK_FORMAT);
+        this.fallbackMetadata = new PackMetadataSection(description, packType == PackType.SERVER_DATA ? CgccPackLoader.DATA_PACK_FORMAT : CgccPackLoader.RESOURCE_PACK_FORMAT);
     }
 
     @Nullable

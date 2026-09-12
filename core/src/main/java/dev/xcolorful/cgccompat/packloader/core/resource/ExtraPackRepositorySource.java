@@ -136,7 +136,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
         Component description = Component.literal(name);
 
         Pack.ResourcesSupplier resources =
-                packId -> new FallbackMetadataPackResources(packId, supplier.open(packId), description);
+                packId -> new FallbackMetadataPackResources(this.packType, packId, supplier.open(packId), description);
 
         return Pack.readMetaAndCreate(id, description, false, resources, this.packType, Pack.Position.TOP, this.packSource);
     }

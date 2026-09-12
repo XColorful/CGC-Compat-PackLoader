@@ -1,6 +1,7 @@
 package dev.xcolorful.cgccompat.packloader;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.SharedConstants;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
@@ -18,7 +19,11 @@ public class CgccPackLoader {
      * 合成元数据使用的包格式
      * 不固定使用 1.20.1 的 15，不然高版本每装一个包都要额外点一次提醒
      */
-    public static final int PACK_FORMAT = 15;
+    @SuppressWarnings("deprecation")
+    public static final int DATA_PACK_FORMAT = SharedConstants.DATA_PACK_FORMAT;
+
+    @SuppressWarnings("deprecation")
+    public static final int RESOURCE_PACK_FORMAT = SharedConstants.RESOURCE_PACK_FORMAT;
 
     /** 配置文件名，位于平台的 config 目录下。 */
     public static final String FILE_NAME = MOD_ID + ".json";
