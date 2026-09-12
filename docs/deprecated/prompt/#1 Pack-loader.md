@@ -379,3 +379,30 @@ NeoForge 20.2.93 的差异点：`@Mod` 只有 `value()`（没有 `modid()` 别�
 - 三个模块 `./gradlew ...:build` 全部成功，无警告；未提交，等你 review。
 
 known issue（按你的选择未处理）：`PACK_FORMAT` 与 `gradle.properties` 的 `pack_format` 仍是 1.20.1 的 15，而 1.20.2 是 18。
+
+# 
+
+```
+模组现在移植到1.20.4，编译通过能运行，你找一下1.20.4的资源包版本号，并修改到主类里
+```
+
+# 
+
+The mod port to 1.20.4 is a different worktree — let me locate it first.
+
+1.20.4's `pack_version` is `{"resource": 22, "data": 26}`. Let me check the current value and gradle.properties.
+
+改完了。1.20.4 的内置 `version.json` 是：
+
+```json
+"pack_version": { "resource": 22, "data": 26 }
+```
+
+资源包版本号是 **22**，已把 [CgccPackLoader.java:21](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/CgccPackLoader.java:21) 的 `PACK_FORMAT` 从 18 改成 22（18 是 1.20.2 的值），`:core:compileJava` 通过。
+
+两点相关的情况报一下，我没有动：
+
+1. **1.20.4 起资源包与数据包的格式号分叉了**（22 vs 26）。之前 1.20.1（15/15）、1.20.2（18/18）是一致的，所以单个 `PACK_FORMAT` 常量够用；1.20.4 之后 `ExtraPackRepositorySource` 为 `SERVER_DATA` 和 `CLIENT_RESOURCES` 用的是同一个常量，数据包会被声明成 22 而游戏期望 26，可能在数据包列表里被标成不兼容。要不要按 `PackType` 分开取值，由你定。
+2. `gradle.properties:40` 的 `pack_format` 仍是 **15**，它管的是模组自带 `pack.mcmeta`，不是主类里的常量（这点和 1.20.2 那次一样）。
+
+未提交，等你 review。
