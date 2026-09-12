@@ -36,7 +36,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
     /**
      * 包 id 前缀取自模组 id，避免与原版的 {@code file/} 和 Forge 的 {@code mod/} 前缀冲突。
      */
-    private static final String PACK_ID_PREFIX = CgccPackLoader.MOD_ID;
+    private static final String PACK_ID_PREFIX = CgccPackLoader.MOD_ID + "/";
 
     private static final String ARCHIVE_SUFFIX = ".zip";
 
