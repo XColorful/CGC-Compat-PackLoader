@@ -15,7 +15,8 @@ public class CgccPackLoader {
     protected static boolean initialized;
 
     /**
-     * 合成元数据使用的包格式，固定使用 1.20.1 的 15
+     * 合成元数据使用的包格式
+     * 不固定使用 1.20.1 的 15，不然高版本每装一个包都要额外点一次提醒
      */
     public static final int PACK_FORMAT = 15;
 
