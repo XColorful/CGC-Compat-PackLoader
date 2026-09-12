@@ -4,7 +4,7 @@ import dev.xcolorful.cgccompat.packloader.CgccPackLoader;
 import dev.xcolorful.cgccompat.packloader.core.resource.ExtraPackFinder;
 import net.minecraft.server.packs.PackType;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddPackFindersEvent;
 
 /**
@@ -15,7 +15,7 @@ import net.neoforged.neoforge.event.AddPackFindersEvent;
  *
  * @see net.minecraft.server.packs.repository.ServerPacksSource#createPackRepository(java.nio.file.Path, net.minecraft.world.level.validation.DirectoryValidator)
  */
-@Mod.EventBusSubscriber(modid = CgccPackLoader.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = CgccPackLoader.MOD_ID)
 public final class NeoForgeDataPackListener {
 
     private NeoForgeDataPackListener() {
