@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 /**
  * 数据包侧的实现入口。平台侧只负责事件订阅与 pack 类型过滤，注册逻辑集中在这里。
  *
- * @see net.minecraft.server.packs.repository.ServerPacksSource#createPackRepository(java.nio.file.Path)
+ * @see net.minecraft.server.packs.repository.ServerPacksSource#createPackRepository(java.nio.file.Path, net.minecraft.world.level.validation.DirectoryValidator)
  */
 public final class ExtraPackFinder {
 
