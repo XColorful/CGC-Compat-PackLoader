@@ -20,10 +20,10 @@ public class CgccPackLoader {
      * 不固定使用 1.20.1 的 15，不然高版本每装一个包都要额外点一次提醒
      */
     @SuppressWarnings("deprecation")
-    public static final int DATA_PACK_FORMAT = SharedConstants.DATA_PACK_FORMAT;
+    public static final int DATA_PACK_FORMAT = SharedConstants.DATA_PACK_FORMAT_MAJOR;
 
     @SuppressWarnings("deprecation")
-    public static final int RESOURCE_PACK_FORMAT = SharedConstants.RESOURCE_PACK_FORMAT;
+    public static final int RESOURCE_PACK_FORMAT = SharedConstants.RESOURCE_PACK_FORMAT_MAJOR;
 
     /** 配置文件名，位于平台的 config 目录下。 */
     public static final String FILE_NAME = MOD_ID + ".json";
