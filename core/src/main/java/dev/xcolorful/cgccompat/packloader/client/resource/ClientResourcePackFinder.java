@@ -1,10 +1,11 @@
 package dev.xcolorful.cgccompat.packloader.client.resource;
 
 import dev.xcolorful.cgccompat.packloader.core.resource.ExtraPackRepositorySource;
-import java.util.function.Consumer;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.server.packs.repository.RepositorySource;
+
+import java.util.function.Consumer;
 
 /**
  * 资源包侧的实现入口。
@@ -19,8 +20,6 @@ import net.minecraft.server.packs.repository.RepositorySource;
  * @see net.minecraft.server.packs.repository.FolderRepositorySource
  */
 public final class ClientResourcePackFinder {
-    /** 资源包类型。 */
-    private static final PackType PACK_TYPE = PackType.CLIENT_RESOURCES;
 
     /** 资源包来源；{@code required} 为 false，因此包只出现在选择界面，需玩家手动启用。 */
     private static final PackSource PACK_SOURCE = PackSource.DEFAULT;
@@ -34,6 +33,6 @@ public final class ClientResourcePackFinder {
      * @param register 平台侧提供的注册回调，对应 {@code AddPackFindersEvent#addRepositorySource}
      */
     public static void onAddPackFinders(Consumer<RepositorySource> register) {
-        register.accept(ExtraPackRepositorySource.fromConfig(PACK_TYPE, PACK_SOURCE));
+        register.accept(ExtraPackRepositorySource.fromConfig(PackType.CLIENT_RESOURCES, PACK_SOURCE));
     }
 }

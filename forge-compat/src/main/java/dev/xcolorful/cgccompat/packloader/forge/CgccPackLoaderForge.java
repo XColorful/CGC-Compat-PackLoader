@@ -1,7 +1,6 @@
 package dev.xcolorful.cgccompat.packloader.forge;
 
 import dev.xcolorful.cgccompat.packloader.CgccPackLoader;
-import dev.xcolorful.cgccompat.packloader.core.resource.ExtraPackConfig;
 import dev.xcolorful.cgccompat.packloader.forge.resource.ForgeDataPackListener;
 import dev.xcolorful.cgccompat.packloader.forgeclient.CgccPackLoaderForgeClient;
 import net.minecraftforge.api.distmarker.Dist;
@@ -19,7 +18,8 @@ import net.minecraftforge.fml.loading.FMLPaths;
 public class CgccPackLoaderForge {
 
     public CgccPackLoaderForge() {
-        CgccPackLoader.init(FMLPaths.GAMEDIR.get(), FMLPaths.CONFIGDIR.get().resolve(ExtraPackConfig.FILE_NAME));
+        CgccPackLoader.init(FMLPaths.GAMEDIR.get(),
+                FMLPaths.CONFIGDIR.get());
 
         Dist dist = FMLLoader.getDist();
 

@@ -1,7 +1,15 @@
 package dev.xcolorful.cgccompat.packloader.core.resource;
 
-import com.mojang.logging.LogUtils;
 import dev.xcolorful.cgccompat.packloader.CgccPackLoader;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.packs.FilePackResources;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.PathPackResources;
+import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.server.packs.repository.PackSource;
+import net.minecraft.server.packs.repository.RepositorySource;
+
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -11,15 +19,6 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.function.Consumer;
-import javax.annotation.Nullable;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.packs.FilePackResources;
-import net.minecraft.server.packs.PackType;
-import net.minecraft.server.packs.PathPackResources;
-import net.minecraft.server.packs.repository.Pack;
-import net.minecraft.server.packs.repository.PackSource;
-import net.minecraft.server.packs.repository.RepositorySource;
-import org.slf4j.Logger;
 
 /**
  * 把配置目录的每个直接子项注册成一个包。
@@ -33,12 +32,11 @@ import org.slf4j.Logger;
  * {@link net.minecraft.server.packs.repository.PackRepository#addPackFinder(RepositorySource)}。
  */
 public class ExtraPackRepositorySource implements RepositorySource {
-    private static final Logger LOGGER = LogUtils.getLogger();
 
     /**
      * 包 id 前缀取自模组 id，避免与原版的 {@code file/} 和 Forge 的 {@code mod/} 前缀冲突。
      */
-    private static final String PACK_ID_PREFIX = CgccPackLoader.MOD_ID + "";
+    private static final String PACK_ID_PREFIX = CgccPackLoader.MOD_ID;
 
     private static final String ARCHIVE_SUFFIX = ".zip";
 
@@ -74,7 +72,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
     public void loadPacks(Consumer<Pack> consumer) {
         for (Path directory : this.directories) {
             if (!Files.isDirectory(directory)) {
-                LOGGER.warn("额外包目录 {} 不存在，已跳过", directory);
+                CgccPackLoader.LOGGER.warn("额外包目录 {} 不存在，已跳过", directory);
                 continue;
             }
             this.loadDirectory(directory, consumer);
@@ -86,7 +84,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
             for (Path entry : entries) {
                 Pack.ResourcesSupplier supplier = resourcesSupplier(entry);
                 if (supplier == null) {
-                    LOGGER.info("发现非包条目 '{}'，已忽略", entry);
+                    CgccPackLoader.LOGGER.info("发现非包条目 '{}'，已忽略", entry);
                     continue;
                 }
                 Pack pack = this.createPack(directory, entry, supplier);
@@ -95,7 +93,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
                 }
             }
         } catch (IOException e) {
-            LOGGER.error("列出 {} 中的包失败", directory, e);
+            CgccPackLoader.LOGGER.error("列出 {} 中的包失败", directory, e);
         }
     }
 
@@ -111,7 +109,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
         try {
             attributes = Files.readAttributes(entry, BasicFileAttributes.class);
         } catch (IOException e) {
-            LOGGER.warn("读取 '{}' 的属性失败，已忽略", entry, e);
+            CgccPackLoader.LOGGER.warn("读取 '{}' 的属性失败，已忽略", entry, e);
             return null;
         }
 
@@ -134,7 +132,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
     @Nullable
     private Pack createPack(Path directory, Path entry, Pack.ResourcesSupplier supplier) {
         String name = entry.getFileName().toString();
-        String id = PACK_ID_PREFIX + "/" + directory.getFileName() + "/" + name;
+        String id = PACK_ID_PREFIX + directory.getFileName() + "/" + name;
         Component description = Component.literal(name);
 
         Pack.ResourcesSupplier resources =

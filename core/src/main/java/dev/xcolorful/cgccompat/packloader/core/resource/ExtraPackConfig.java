@@ -4,7 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
-import com.mojang.logging.LogUtils;
+import dev.xcolorful.cgccompat.packloader.CgccPackLoader;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -15,7 +16,6 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
 
 /**
  * 读写列出额外包目录的配置文件。
@@ -29,10 +29,6 @@ import org.slf4j.Logger;
  * @see net.minecraft.server.packs.repository.FolderRepositorySource
  */
 public final class ExtraPackConfig {
-    private static final Logger LOGGER = LogUtils.getLogger();
-
-    /** 配置文件名，位于平台的 config 目录下。 */
-    public static final String FILE_NAME = "cgccpackloader.json";
 
     /** 配置文件不存在时写入的内容。 */
     public static final List<String> DEFAULT_ENTRIES = List.of("./tacz/");
@@ -62,7 +58,7 @@ public final class ExtraPackConfig {
             try {
                 directories.add(gameDir.resolve(entry).normalize());
             } catch (InvalidPathException e) {
-                LOGGER.warn("忽略 {} 中非法的包目录 '{}'", configFile, entry, e);
+                CgccPackLoader.LOGGER.warn("忽略 {} 中非法的包目录 '{}'", configFile, entry, e);
             }
         }
         return List.copyOf(directories);
@@ -79,7 +75,7 @@ public final class ExtraPackConfig {
             return entries == null ? List.of() : entries;
         } catch (IOException | JsonParseException e) {
             // 该文件由用户维护，出错时保持原样而不是覆盖它。
-            LOGGER.error("读取 {} 失败，不会加载任何额外包目录", configFile, e);
+            CgccPackLoader.LOGGER.error("读取 {} 失败，不会加载任何额外包目录", configFile, e);
             return List.of();
         }
     }
@@ -92,9 +88,9 @@ public final class ExtraPackConfig {
             try (BufferedWriter writer = Files.newBufferedWriter(configFile, StandardCharsets.UTF_8)) {
                 GSON.toJson(entries, writer);
             }
-            LOGGER.info("已创建 {}，默认包目录为 {}", configFile, entries);
+            CgccPackLoader.LOGGER.info("已创建 {}，默认包目录为 {}", configFile, entries);
         } catch (IOException e) {
-            LOGGER.error("创建 {} 失败", configFile, e);
+            CgccPackLoader.LOGGER.error("创建 {} 失败", configFile, e);
         }
     }
 }

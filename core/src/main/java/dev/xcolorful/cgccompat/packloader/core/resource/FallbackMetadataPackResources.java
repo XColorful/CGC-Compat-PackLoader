@@ -1,9 +1,6 @@
 package dev.xcolorful.cgccompat.packloader.core.resource;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Set;
-import javax.annotation.Nullable;
+import dev.xcolorful.cgccompat.packloader.CgccPackLoader;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.AbstractPackResources;
@@ -12,6 +9,11 @@ import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.metadata.MetadataSectionSerializer;
 import net.minecraft.server.packs.metadata.pack.PackMetadataSection;
 import net.minecraft.server.packs.resources.IoSupplier;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Set;
 
 /**
  * 代理真实的包，并在其缺少 {@code pack.mcmeta} 时补上一份合成元数据。
@@ -30,11 +32,6 @@ import net.minecraft.server.packs.resources.IoSupplier;
  * @see net.minecraft.server.packs.repository.Pack#readPackInfo(String, Pack.ResourcesSupplier)
  */
 public class FallbackMetadataPackResources extends AbstractPackResources {
-    /**
-     * 合成元数据使用的包格式。与本分支目标版本一致：{@code SharedConstants.RESOURCE_PACK_FORMAT}
-     * 与 {@code SharedConstants.DATA_PACK_FORMAT} 在 1.20.1 都是 15。
-     */
-    public static final int PACK_FORMAT = 15;
 
     private final PackResources delegate;
     private final PackMetadataSection fallbackMetadata;
@@ -47,7 +44,7 @@ public class FallbackMetadataPackResources extends AbstractPackResources {
     public FallbackMetadataPackResources(String packId, PackResources delegate, Component description) {
         super(packId, false);
         this.delegate = delegate;
-        this.fallbackMetadata = new PackMetadataSection(description, PACK_FORMAT);
+        this.fallbackMetadata = new PackMetadataSection(description, CgccPackLoader.PACK_FORMAT);
     }
 
     @Nullable
