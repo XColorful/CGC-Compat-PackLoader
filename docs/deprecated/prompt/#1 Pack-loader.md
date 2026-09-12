@@ -484,3 +484,67 @@ Let me do a clean recompile to confirm there are no Java warnings.
 2. **`gradle.properties` 的 `pack_format=15`**：1.21.1 实际是资源包 **34**、数据包 **48**。主类已改用 `SharedConstants.RESOURCE_PACK_FORMAT`/`DATA_PACK_FORMAT` 动态取值，所以合成元数据不受影响；受影响的只有模组自带 `pack.mcmeta`（`core/src/main/resources/pack.mcmeta` 的 `${pack_format}`）。改不改由你定。
 
 未提交，等你 review。
+
+# 
+
+```
+现在继续移植到1.21.4，第一个编译不通过的是FallbackMetadataPackResources
+```
+
+# 
+
+Working directory is now the 1.21.4neoforge worktree. Let me check its state and read the failing file.
+
+Let me try compiling to see the actual errors.
+
+`MetadataSectionSerializer` was removed in 1.21.4. Let me locate the 1.21.4 mapped sources.
+
+Found the 1.21.4 sources. Let me extract the pack classes.
+
+Only `FallbackMetadataPackResources` needs changes: `MetadataSectionSerializer` → `MetadataSectionType` (1.21.4 refactor). Let me apply it.
+
+The rest of core consistently says "Forge" — let me revert that wording to stay consistent and surgical.
+
+Now let me recompile.
+
+Both modules compile. Let me run a full clean build and check whether `forge-compat` is meant to be part of this branch.
+
+Clean build passes. Let me verify no stale references remain and check the NeoForge-side javadoc pointers.
+
+Let me check the NeoForge `EventBusSubscriber` annotation — the client listener's javadoc claims a client-only filter, but the annotation doesn't set it.
+
+Confirmed: NeoForge 21.4's `@EventBusSubscriber.value()` defaults to **both sides**, and `bus()` is deprecated/ignored. The client listener's javadoc claims a client-only filter that the annotation doesn't set. Let me check the event and the mod main classes.
+
+Let me check the history of the NeoForge client listener to see whether dropping the dist filter was deliberate.
+
+The original 1.20.2 NeoForge version had `value = Dist.CLIENT`; it was dropped during the 1.21.1 port. Let me see that diff exactly.
+
+Let me verify the remaining `@see` pointers and pack-format values against 1.21.4.
+
+Two `@see` pointers look stale — NeoForge 1.21.4 doesn't post the event from `ClientModLoader`. Let me find where it's actually posted.
+
+# 
+
+```
+现在继续移植到1.21.10，第一个不过的是FallbackMetadataPackResources
+```
+
+# 
+
+Switched to the 1.21.10neoforge worktree. Let me check its state and reproduce the first failure.
+
+This worktree already has an uncommitted change to `CgccPackLoader.java`. Let me see it and reproduce the failure.
+
+Now I see the 1.21.10 API shift. Let me locate the 1.21.10 sources and inspect the new metadata API.
+
+Let me read how `Pack` in 1.21.10 requests the metadata section and check the other pack classes.
+
+Let me check `InclusiveRange` and how `Pack` interprets `supportedFormats` in 1.21.10.
+
+Now I have the full 1.21.10 picture. Let me verify the `PackDetector` javadoc target still exists.
+
+Now let me apply the 1.21.10 changes.
+
+`core` compiles now; `neoforge-compat` hits `FMLLoader.getDist()` becoming non-static. Let me inspect the resolved FML loader API.
+
+`FMLEnvironment.getDist()` is the static replacement. Let me read the file and fix it.
