@@ -137,12 +137,12 @@ public class ExtraPackRepositorySource implements RepositorySource {
         Pack.ResourcesSupplier resources = new Pack.ResourcesSupplier() {
             @Override
             public PackResources openPrimary(String packId) {
-                return new FallbackMetadataPackResources(packId, supplier.openPrimary(packId), description);
+                return new FallbackMetadataPackResources(ExtraPackRepositorySource.this.packType, packId, supplier.openPrimary(packId), description);
             }
 
             @Override
             public PackResources openFull(String packId, Pack.Info info) {
-                return new FallbackMetadataPackResources(packId, supplier.openFull(packId, info), description);
+                return new FallbackMetadataPackResources(ExtraPackRepositorySource.this.packType, packId, supplier.openFull(packId, info), description);
             }
         };
 
