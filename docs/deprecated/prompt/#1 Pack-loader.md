@@ -1,0 +1,214 @@
+> #1 提示词
+
+# 
+
+```
+现在需要完成MC模组，以下是说明。
+
+模组介绍：
+- 跨版本模组，当前Gradle结构分离了core和forge-compat，以便于提取平台无关代码及跨平台适配
+- core目录下禁止包含forge/neoforge import，需要平台侧调用或在模组初始化时提供接口（例如需要@SubscribeEvent，则可以改成在平台侧监听，调用core实现）
+
+模组需要实现的功能见README.md，即添加数据包/资源包读取目录。要求如下：
+- 读取./config/cgccpackloader.json，格式为Json列表，每一项为字符串，表示路径，如果没有这个文件，默认添加./tacz/，并写入json
+- 游戏启动后，将列出的路径都作为额外补充的数据包+资源包目录
+- 需要查找或参考原版API来实现，如果原版有出处，则需要补充javadoc @see来方便移植到其他版本时知晓如何移植
+- 如果不能直接用原版API实现，需要Mixin或者AccessTransformers的话，说明原因并向我报告，我来补充Mixin和AT环境
+- 目前认为该模组功能极其简单，可能不需要特别多代码，因此目前文档里只有./resource/目录；如果需要其他辅助且不应属于resource包，则可以新建包
+- 模组主类启动方式已经固定（CgccPackLoaderForge、CgccPackLoaderForgeClient、CgccPackLoader、CgccPackLoaderClient），注意服务端需要隔离资源包加载，也就是资源包加载要放在client.resource下实现
+- 对于README里提到的缺少pack.mcmeta，实现方式为使用文件夹名称/资源包压缩包名称作为"description"，pack_format固定填15即可；不需要补充缺少的其他文件（如logo.png）；不需要将补充的pack.mcmeta写到文件夹/压缩包里
+- 由于你可能不会写平台抽象层，如果实现的时候不知道怎么隔离平台代码的，可以写在core里，我手动实现平台抽象
+
+现在开始执行，完成后通知我检查
+```
+
+# 
+
+I'll start by exploring the project structure and documentation to understand what's already in place.
+
+Let me explore the project structure and documentation.
+
+Let me read the documentation and existing source files.
+
+Now let me inspect the Minecraft 1.20.1 sources to find the vanilla APIs. Let me locate the sources jar.
+
+Found the mapped sources jar. Let me extract the relevant vanilla pack classes to inspect exact 1.20.1 signatures.
+
+The `/tmp` path maps differently in Git Bash. Let me get the real path.
+
+Now let me check how Forge's `AddPackFindersEvent` hooks into the client, and inspect the metadata classes.
+
+The client-side hook must be in `ClientModLoader`. Let me check it.
+
+Let me check Forge's own resource pack classes for established patterns, and find all callers of `getMetadataSection`.
+
+`DelegatingPackResources` is exactly the pattern I need. Let me read it.
+
+Let me verify how packs from a finder get auto-enabled, since the packs must actually load without manual selection.
+
+Let me check how Forge handles auto-selecting resource packs and the `required` pack path.
+
+I have the full picture of the vanilla/Forge APIs. One behavioral decision genuinely belongs to you before I write the code.
+
+Decisions noted: `required=false` (discoverable only) and no directory creation. Let me verify pack_format 15 is compatible in 1.20.1.
+
+Confirmed pack_format 15 is correct for both types in 1.20.1. Let me verify the Forge FML classes I'll use exist.
+
+Let me verify two remaining API details before writing code.
+
+Let me verify Gson is on the core module's compile classpath.
+
+I have everything I need. Let me set up tasks and write the code.
+
+Now let me compile to verify.
+
+Compiles successfully. There are two deprecation warnings on `FMLJavaModLoadingContext.get()` — let me check the recommended replacement.
+
+Compilation passes for both modules. Let me check whether a runtime verification is feasible.
+
+No runtime environment exists (no `run/` dir, no asset cache), so I'll verify the config file logic standalone against the real class.
+
+All 13 config checks pass. Let me verify the one remaining assumption in the metadata fallback path.
+
+`"pack"` and `"features"` confirmed — the fallback path is correct. Let me now exercise the actual pack discovery end-to-end using the real compile classpath.
+
+Let me check the shape of the mapped jar so I can build a test classpath directly.
+
+The `-I` failure is an environment quirk (default JDK is Java 25; Gradle 8.8 can't compile init scripts under it). The build itself is healthy — verified again without `-I`. Let me add the missing `@see` porting tags the spec asks for.
+
+已完成，代码编译通过。以下是检查清单。
+
+## 新增文件（全部在 core，无 forge/neoforge import）
+
+|文件|职责|
+|---|---|
+|[ExtraPackConfig.java](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/core/resource/ExtraPackConfig.java)|读写 `cgccpackloader.json`；缺文件时写入默认 `["./tacz/"]`；相对路径按 gameDir 解析|
+|[ExtraPackRepositorySource.java](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/core/resource/ExtraPackRepositorySource.java)|`RepositorySource` 实现，扫描每个配置目录的直接子项（文件夹 / `.zip`）注册为包|
+|[FallbackMetadataPackResources.java](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/core/resource/FallbackMetadataPackResources.java)|`PackResources` 包装器，原包缺 `pack.mcmeta` 时补合成 metadata|
+|[ClientResourcePackFinder.java](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/client/resource/ClientResourcePackFinder.java)|资源包 finder，唯一引用 `PackType.CLIENT_RESOURCES` 的地方|
+
+## 修改文件
+
+- [CgccPackLoader.java](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/CgccPackLoader.java) — `init()` 改为 `init(Path gameDir, Path configFile)` 并暴露 `packDirectories()`
+- [CgccPackLoaderForge.java](app://localhost/epitaxy/forge-compat/src/main/java/dev/xcolorful/cgccompat/packloader/forge/CgccPackLoaderForge.java) — 注册 `SERVER_DATA` 的 `AddPackFindersEvent`
+- [CgccPackLoaderForgeClient.java](app://localhost/epitaxy/forge-compat/src/main/java/dev/xcolorful/cgccompat/packloader/forgeclient/CgccPackLoaderForgeClient.java) — 注册 `CLIENT_RESOURCES` 的 `AddPackFindersEvent`
+- `CgccPackLoaderClient` 未动（客户端包路径已由 forgeclient 侧隔离）
+
+## 为什么不需要 Mixin / AT
+
+原版有**两处**独立的硬要求，都在公开扩展点上解决：
+
+1. `FolderRepositorySource.detectPackResources` 对目录强制要求 `<dir>/pack.mcmeta`，否则目录**根本不被识别** → 所以不用它，自己写扫描逻辑。
+2. `Pack.readPackInfo` 读到 `PackMetadataSection == null` 就丢弃整包 → 所以用 `PackResources` 包装器，仅在 delegate 返回 null 时补一个 section。
+
+`RepositorySource`、`Pack.ResourcesSupplier`、`PackResources`、`AddPackFindersEvent` 都是公开接口/事件，无一处需要 Mixin 或 AT，**不需要你补环境**。
+
+挂载点：Forge 的 `AddPackFindersEvent`（`SERVER_DATA` 由 `ServerPacksSource.createPackRepository` 抛出，`CLIENT_RESOURCES` 由 `ClientModLoader.begin` 抛出）。已按你的要求补了 `@see` 指向 `FolderRepositorySource`、`Pack#readPackInfo`、`ServerPacksSource#createPackRepository`、`ClientModLoader`。
+
+## 需要你决定 / 注意
+
+1. **`CgccPackLoader.init` 签名变更**：core 不能再 import `FMLPaths`，必须平台侧传入 gameDir + config 路径。如果你希望保持无参 + 手工抽象层，我可以改。
+2. **2 个 deprecation warning**：`FMLJavaModLoadingContext.get()` 在 47.4.16 已 `forRemoval`，官方建议构造器注入。我**没改**，因为你声明 `forge_version_range=[47,)`，构造器注入需要较新的 47.x，改了会隐性缩小支持范围——要不要改由你定。
+3. `PACK_FORMAT = 15` 硬编码在 `FallbackMetadataPackResources`（javadoc 已注明移植时要改）。
+4. 配置只在模组构造时读一次，改配置需重启。
+5. 包 id 形如 `cgccpackloader/tacz/<名称>`，避开原版 `file/` 与 Forge `mod/`；多个目录下同名包也靠目录名区分。
+6. 按你的选择：`required=false`（仅可发现，需玩家启用；数据包因 `PackSource.DEFAULT` 仍自动启用但可在世界设置禁用）；目录不存在时跳过、**不创建**。
+7. `description` 用子项文件名（含 `.zip`），与原版 `nameFromPath` 一致。
+
+## 平台 API 使用报告（按 CLAUDE.md 要求）
+
+- **forge-compat 侧**（平台侧，应属正常）：`AddPackFindersEvent`、`FMLJavaModLoadingContext`、`FMLPaths`、`IEventBus`、`FMLLoader.getDist()`（原有）。这些我**没有**找到项目内的兼容封装，所以直接使用。
+- **core 侧**：只用原版 + JDK（`PackResources`/`AbstractPackResources`/`PathPackResources`/`FilePackResources`/`Pack`/`RepositorySource`/`PackSource`/`PackType`/`PackMetadataSection`/`Component`/`IoSupplier` + Gson）。
+
+## 验证情况
+
+- `./gradlew :core:compileJava :forge-compat:compileJava` **通过**。
+- `ExtraPackConfig` 对真实类跑了 13 项检查**全过**：缺文件时创建 `["./tacz/"]`、相对/绝对路径解析、空白与 `null` 项跳过、JSON 语法错误 → 返回空且**不覆盖**用户文件、`[]` 返回空。
+- **未做游戏内验证**：仓库里没有 `forge-compat/run/`，也没有 MC 资源缓存，无法启动客户端/服务端。所以「包是否真的出现在选择界面」需要你在 IDEA 里实测——这是我这次唯一没能闭环的一点。
+- 未向仓库添加任何测试文件；临时校验代码在系统临时目录，与仓库无关。
+
+（另：`docs/architecture/*/Home.md` 的改动是你本次会话开始前就存在的，我没有触碰。）
+
+# 
+
+```
+- javadoc写中文
+- Forge事件监听改成在平台层的resource包下，添加带@SubscribeEvent和EventSubscriber的类来监听，并在平台曾构建pack类型过滤，调用core侧的onAddPackFinders，从而将平台侧的逻辑变为仅提供事件监听，而实现放在core
+- packDirectories改成多个private static final变量，提供public static final getter
+- PACK_ID_PREFIX改成CgccPackLoader.MOD_ID + ""
+- 修改后需要在两个Home.md列出每个类的功能说明，简短一句话就行
+```
+
+# 
+
+Let me check the current docs and how Forge's `@Mod.EventBusSubscriber` handles dist filtering.
+
+The `@Mod.EventBusSubscriber` dist filter in `AutomaticEventSubscriber` confirms `value = Dist.CLIENT` classes are never classloaded on a dedicated server — that's a cleaner isolation mechanism than the current manual holder.
+
+One instruction I can't resolve without guessing, since `private static final` can't hold a runtime-loaded value:
+
+Both answers are clear. Let me implement: platform listeners with annotation-driven registration, and `CgccPackLoader` holding each platform-supplied `Path` in its own field.
+
+Let me compile before updating the docs.
+
+Build is clean now — the two deprecation warnings are gone since the annotation replaces the manual bus lookup. Now the docs.
+
+Let me verify the `@Mod.EventBusSubscriber` annotations are actually retained in the compiled classes — otherwise the listeners would silently never fire.
+
+All annotations retained with the intended values. Let me get the final change summary.
+
+五点修改全部完成，编译通过且无警告。
+
+## 1. javadoc 改中文
+
+所有新增/修改文件的 javadoc 与注释已改写为中文，`@see` 移植提示保留（指向 `FolderRepositorySource`、`Pack#readPackInfo`、`AbstractPackResources#getMetadataSection`、`ServerPacksSource#createPackRepository`、`ClientModLoader`）。
+
+## 2. 事件监听移到平台层 resource 包
+
+平台侧现在只剩「订阅事件 + 过滤 pack 类型 + 转发」，实现全在 core：
+
+|平台侧|core 侧|
+|---|---|
+|[ForgeDataPackListener.java](app://localhost/epitaxy/forge-compat/src/main/java/dev/xcolorful/cgccompat/packloader/forge/resource/ForgeDataPackListener.java) `@Mod.EventBusSubscriber(bus = MOD)`|[ExtraPackFinder.java](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/core/resource/ExtraPackFinder.java) `onAddPackFinders(Consumer<RepositorySource>)`|
+|[ForgeClientResourcePackListener.java](app://localhost/epitaxy/forge-compat/src/main/java/dev/xcolorful/cgccompat/packloader/forgeclient/resource/ForgeClientResourcePackListener.java) `@Mod.EventBusSubscriber(bus = MOD, value = Dist.CLIENT)`|[ClientResourcePackFinder.java](app://localhost/epitaxy/core/src/main/java/dev/xcolorful/cgccompat/packloader/client/resource/ClientResourcePackFinder.java) `onAddPackFinders(Consumer<RepositorySource>)`|
+
+两个 `CgccPackLoaderForge*` 里的手动 `addListener` 已删除。**副作用：之前那 2 个 `FMLJavaModLoadingContext.get()` deprecation warning 消失了**，现在编译零警告。
+
+隔离机制也升级了：`AutomaticEventSubscriber` 里 `sides.contains(FMLEnvironment.dist)` 在 `Class.forName` **之前**判断，所以 `value = Dist.CLIENT` 的类在专用服务端根本不会被 classload。已用 `javap -v` 确认编译产物里的注解值正确（`bus=MOD`；客户端那个多一个 `value=[Dist.CLIENT]`）。
+
+## 3. CgccPackLoader 改为逐 Path 字段
+
+`packDirectories()` 已删除，改为平台侧传入的多个 `Path` 各自一个字段 + getter：
+
+```java
+private static Path gameDirectory;
+private static Path configFile;
+public static Path gameDirectory() { ... }
+public static Path configFile() { ... }
+```
+
+配置读取下沉到 core 的 `ExtraPackRepositorySource.fromConfig(PackType, PackSource)`（由两个 finder 调用），因此不再有 `List<Path>` 静态状态。
+
+## 4. PACK_ID_PREFIX
+
+```java
+private static final String PACK_ID_PREFIX = CgccPackLoader.MOD_ID + "";
+```
+
+id 形如 `cgccpackloader/tacz/<名称>`。
+
+## 5. 两个 Home.md
+
+[core/Home.md](app://localhost/epitaxy/docs/architecture/core/Home.md) 与 [client/Home.md](app://localhost/epitaxy/docs/architecture/client/Home.md) 均按「主类 / 资源 / 平台侧」分节列出每个类，中英双语各一句话。
+
+## 验证
+
+- `./gradlew :core:compileJava :forge-compat:compileJava` **通过、零警告**，11 个类全部产出。
+- `ExtraPackConfig` 重写后重跑校验：13 项**全过**（缺文件建默认、相对/绝对解析、空白与 `null` 跳过、语法错误不覆盖用户文件、`[]` 为空）。
+- `javap -v` 确认 `@SubscribeEvent` 与 `@Mod.EventBusSubscriber(modid/bus/value)` 均保留在 class 文件中，且回调目标是 `AddPackFindersEvent#addRepositorySource`。
+- **仍未做游戏内验证**（仓库无 `run/`、无 MC 资源缓存），需要你在 IDEA 实测包的加载与选择界面显示。
+
+## 两点需你确认
+
+1. 我把平台侧的 `forge.resource` / `forgeclient.resource` 类**并入了两个 Home.md 的「平台侧」小节**，因为仓库里没有 forge 模块的 Home.md。若你想独立建档，我可以拆出去。
+2. `CgccPackLoader` 位于 `dev.xcolorful.cgccompat.packloader`（不是 `.core`），我按「core 模块主类」处理，在两个 Home.md 里以引用行说明。若你希望严格按包路径归属，我改。
