@@ -20,7 +20,7 @@ public class CgccPackLoader {
     public static final int PACK_FORMAT = 15;
 
     /** 配置文件名，位于平台的 config 目录下。 */
-    public static final String FILE_NAME = "cgccpackloader.json";
+    public static final String FILE_NAME = MOD_ID + ".json";
 
     /** 游戏根目录，用于解析配置中的相对路径。 */
     private static Path gameDirectory;
