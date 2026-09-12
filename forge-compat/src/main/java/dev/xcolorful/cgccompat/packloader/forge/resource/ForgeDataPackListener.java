@@ -13,7 +13,7 @@ import net.minecraftforge.fml.common.Mod;
  * <p>{@code value} 保持默认（{@link net.minecraftforge.api.distmarker.Dist#CLIENT} 与
  * {@link net.minecraftforge.api.distmarker.Dist#DEDICATED_SERVER}），因为数据包在两个物理侧都要加载。
  *
- * @see net.minecraft.server.packs.repository.ServerPacksSource#createPackRepository(java.nio.file.Path)
+ * @see net.minecraft.server.packs.repository.ServerPacksSource#createPackRepository(java.nio.file.Path, net.minecraft.world.level.validation.DirectoryValidator)
  */
 @Mod.EventBusSubscriber(modid = CgccPackLoader.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class ForgeDataPackListener {
