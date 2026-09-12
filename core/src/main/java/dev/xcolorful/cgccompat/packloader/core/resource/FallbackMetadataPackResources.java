@@ -8,16 +8,17 @@ import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.metadata.MetadataSectionType;
+import net.minecraft.server.packs.metadata.pack.PackFormat;
 import net.minecraft.server.packs.metadata.pack.PackMetadataSection;
 import net.minecraft.server.packs.resources.IoSupplier;
 import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.util.InclusiveRange;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -27,18 +28,19 @@ import java.util.Set;
  * 根本不会被
  * {@link net.minecraft.server.packs.repository.PackDetector#detectPackResources(Path, List)}
  * 识别；没有它的压缩包则会被
- * {@link net.minecraft.server.packs.repository.Pack#readPackMetadata(PackLocationInfo, Pack.ResourcesSupplier, int)}
+ * {@link net.minecraft.server.packs.repository.Pack#readPackMetadata(PackLocationInfo, Pack.ResourcesSupplier, PackFormat, PackType)}
  * 丢弃。由代理层直接应答元数据查询，包的内容就能在通过这两步的同时仍可被访问。
  *
  * <p>真实元数据优先，只有确实缺失的 section 才会被替换。Forge 合并出的 {@code mod_resources}
  * 包通过 {@code net.minecraftforge.resource.DelegatingPackResources} 做了同样的事。
  *
  * @see AbstractPackResources#getMetadataSection(MetadataSectionType)
- * @see net.minecraft.server.packs.repository.Pack#readPackMetadata(PackLocationInfo, Pack.ResourcesSupplier, int)
+ * @see net.minecraft.server.packs.repository.Pack#readPackMetadata(PackLocationInfo, Pack.ResourcesSupplier, PackFormat, PackType)
  */
 public class FallbackMetadataPackResources extends AbstractPackResources {
 
     private final PackResources delegate;
+    private final MetadataSectionType<PackMetadataSection> packMetadataType;
     private final PackMetadataSection fallbackMetadata;
 
     /**
@@ -50,7 +52,11 @@ public class FallbackMetadataPackResources extends AbstractPackResources {
     public FallbackMetadataPackResources(PackType packType, PackLocationInfo location, PackResources delegate, Component description) {
         super(location);
         this.delegate = delegate;
-        this.fallbackMetadata = new PackMetadataSection(description, packType == PackType.SERVER_DATA ? CgccPackLoader.DATA_PACK_FORMAT : CgccPackLoader.RESOURCE_PACK_FORMAT, Optional.empty());
+        this.packMetadataType = PackMetadataSection.forPackType(packType);
+        this.fallbackMetadata = new PackMetadataSection(description,
+                new InclusiveRange<>(PackFormat.of(packType == PackType.SERVER_DATA
+                        ? CgccPackLoader.DATA_PACK_FORMAT
+                        : CgccPackLoader.RESOURCE_PACK_FORMAT)));
     }
 
     @Nullable
@@ -61,9 +67,10 @@ public class FallbackMetadataPackResources extends AbstractPackResources {
         if (section != null) {
             return section;
         }
-        // 按 section 名比较，与 Forge 的 DelegatingPackResources 一致：入参本身就是 section 的类型
-        // 描述符，名称才是跨版本比较时唯一稳定的东西。
-        return PackMetadataSection.TYPE.name().equals(type.name())
+        // 按 section 名比较，与 Forge 的 DelegatingPackResources 一致：原版会依次用本包类型的
+        // section 和 FALLBACK_TYPE 询问，它们是 codec 不同但同名的 record，名称才是唯一稳定的
+        // 比较依据。
+        return this.packMetadataType.name().equals(type.name())
                 ? (T) this.fallbackMetadata
                 : null;
     }
