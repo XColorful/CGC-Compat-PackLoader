@@ -13,6 +13,9 @@ import net.minecraft.server.packs.resources.IoSupplier;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -20,16 +23,16 @@ import java.util.Set;
  *
  * <p>原版会在两处丢弃读不到 {@link PackMetadataSection} 的包：没有 {@code pack.mcmeta} 的目录
  * 根本不会被
- * {@link net.minecraft.server.packs.repository.FolderRepositorySource#detectPackResources(Path, boolean)}
+ * {@link net.minecraft.server.packs.repository.PackDetector#detectPackResources(Path, List)}
  * 识别；没有它的压缩包则会被
- * {@link net.minecraft.server.packs.repository.Pack#readPackInfo(String, Pack.ResourcesSupplier)}
+ * {@link net.minecraft.server.packs.repository.Pack#readPackInfo(String, Pack.ResourcesSupplier, int)}
  * 丢弃。由代理层直接应答元数据查询，包的内容就能在通过这两步的同时仍可被访问。
  *
  * <p>真实元数据优先，只有确实缺失的 section 才会被替换。Forge 合并出的 {@code mod_resources}
  * 包通过 {@code net.minecraftforge.resource.DelegatingPackResources} 做了同样的事。
  *
  * @see AbstractPackResources#getMetadataSection(MetadataSectionSerializer)
- * @see net.minecraft.server.packs.repository.Pack#readPackInfo(String, Pack.ResourcesSupplier)
+ * @see net.minecraft.server.packs.repository.Pack#readPackInfo(String, Pack.ResourcesSupplier, int)
  */
 public class FallbackMetadataPackResources extends AbstractPackResources {
 
@@ -44,7 +47,7 @@ public class FallbackMetadataPackResources extends AbstractPackResources {
     public FallbackMetadataPackResources(String packId, PackResources delegate, Component description) {
         super(packId, false);
         this.delegate = delegate;
-        this.fallbackMetadata = new PackMetadataSection(description, CgccPackLoader.PACK_FORMAT);
+        this.fallbackMetadata = new PackMetadataSection(description, CgccPackLoader.PACK_FORMAT, Optional.empty());
     }
 
     @Nullable

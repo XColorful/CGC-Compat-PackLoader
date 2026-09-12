@@ -3,6 +3,7 @@ package dev.xcolorful.cgccompat.packloader.core.resource;
 import dev.xcolorful.cgccompat.packloader.CgccPackLoader;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.FilePackResources;
+import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.PathPackResources;
 import net.minecraft.server.packs.repository.Pack;
@@ -10,7 +11,6 @@ import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.server.packs.repository.RepositorySource;
 
 import javax.annotation.Nullable;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
@@ -101,7 +101,7 @@ public class ExtraPackRepositorySource implements RepositorySource {
      * 为 {@code entry} 挑选对应的原版 {@link Pack.ResourcesSupplier}；既不是目录也不是压缩包时返回
      * {@code null}。
      *
-     * @see net.minecraft.server.packs.repository.FolderRepositorySource#detectPackResources(Path, boolean)
+     * @see net.minecraft.server.packs.repository.PackDetector#detectPackResources(Path, List)
      */
     @Nullable
     private static Pack.ResourcesSupplier resourcesSupplier(Path entry) {
@@ -114,13 +114,12 @@ public class ExtraPackRepositorySource implements RepositorySource {
         }
 
         if (attributes.isDirectory()) {
-            return packId -> new PathPackResources(packId, entry, false);
+            return new PathPackResources.PathResourcesSupplier(entry, false);
         }
         if (attributes.isRegularFile() && entry.getFileName().toString().endsWith(ARCHIVE_SUFFIX)
                 && entry.getFileSystem() == FileSystems.getDefault()) {
-            // FilePackResources 接收 File，因此无法读取非默认文件系统上的路径。
-            File archive = entry.toFile();
-            return packId -> new FilePackResources(packId, archive, false);
+            // FilePackResources 通过 File 打开压缩包，因此无法读取非默认文件系统上的路径。
+            return new FilePackResources.FileResourcesSupplier(entry, false);
         }
         return null;
     }
@@ -135,8 +134,17 @@ public class ExtraPackRepositorySource implements RepositorySource {
         String id = PACK_ID_PREFIX + directory.getFileName() + "/" + name;
         Component description = Component.literal(name);
 
-        Pack.ResourcesSupplier resources =
-                packId -> new FallbackMetadataPackResources(packId, supplier.open(packId), description);
+        Pack.ResourcesSupplier resources = new Pack.ResourcesSupplier() {
+            @Override
+            public PackResources openPrimary(String packId) {
+                return new FallbackMetadataPackResources(packId, supplier.openPrimary(packId), description);
+            }
+
+            @Override
+            public PackResources openFull(String packId, Pack.Info info) {
+                return new FallbackMetadataPackResources(packId, supplier.openFull(packId, info), description);
+            }
+        };
 
         return Pack.readMetaAndCreate(id, description, false, resources, this.packType, Pack.Position.TOP, this.packSource);
     }
