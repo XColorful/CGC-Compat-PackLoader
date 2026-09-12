@@ -522,3 +522,29 @@ The original 1.20.2 NeoForge version had `value = Dist.CLIENT`; it was dropped d
 Let me verify the remaining `@see` pointers and pack-format values against 1.21.4.
 
 Two `@see` pointers look stale — NeoForge 1.21.4 doesn't post the event from `ClientModLoader`. Let me find where it's actually posted.
+
+# 
+
+```
+现在继续移植到1.21.10，第一个不过的是FallbackMetadataPackResources
+```
+
+# 
+
+Switched to the 1.21.10neoforge worktree. Let me check its state and reproduce the first failure.
+
+This worktree already has an uncommitted change to `CgccPackLoader.java`. Let me see it and reproduce the failure.
+
+Now I see the 1.21.10 API shift. Let me locate the 1.21.10 sources and inspect the new metadata API.
+
+Let me read how `Pack` in 1.21.10 requests the metadata section and check the other pack classes.
+
+Let me check `InclusiveRange` and how `Pack` interprets `supportedFormats` in 1.21.10.
+
+Now I have the full 1.21.10 picture. Let me verify the `PackDetector` javadoc target still exists.
+
+Now let me apply the 1.21.10 changes.
+
+`core` compiles now; `neoforge-compat` hits `FMLLoader.getDist()` becoming non-static. Let me inspect the resolved FML loader API.
+
+`FMLEnvironment.getDist()` is the static replacement. Let me read the file and fix it.
