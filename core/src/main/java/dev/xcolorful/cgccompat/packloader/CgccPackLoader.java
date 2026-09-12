@@ -18,7 +18,7 @@ public class CgccPackLoader {
      * 合成元数据使用的包格式
      * 不固定使用 1.20.1 的 15，不然高版本每装一个包都要额外点一次提醒
      */
-    public static final int PACK_FORMAT = 15;
+    public static final int PACK_FORMAT = 18;
 
     /** 配置文件名，位于平台的 config 目录下。 */
     public static final String FILE_NAME = MOD_ID + ".json";
