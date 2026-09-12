@@ -4,6 +4,7 @@ import dev.xcolorful.cgccompat.packloader.CgccPackLoader;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.AbstractPackResources;
+import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.metadata.MetadataSectionSerializer;
@@ -26,14 +27,14 @@ import java.util.Set;
  * 根本不会被
  * {@link net.minecraft.server.packs.repository.PackDetector#detectPackResources(Path, List)}
  * 识别；没有它的压缩包则会被
- * {@link net.minecraft.server.packs.repository.Pack#readPackInfo(String, Pack.ResourcesSupplier, int)}
+ * {@link net.minecraft.server.packs.repository.Pack#readPackMetadata(PackLocationInfo, Pack.ResourcesSupplier, int)}
  * 丢弃。由代理层直接应答元数据查询，包的内容就能在通过这两步的同时仍可被访问。
  *
  * <p>真实元数据优先，只有确实缺失的 section 才会被替换。Forge 合并出的 {@code mod_resources}
  * 包通过 {@code net.minecraftforge.resource.DelegatingPackResources} 做了同样的事。
  *
  * @see AbstractPackResources#getMetadataSection(MetadataSectionSerializer)
- * @see net.minecraft.server.packs.repository.Pack#readPackInfo(String, Pack.ResourcesSupplier, int)
+ * @see net.minecraft.server.packs.repository.Pack#readPackMetadata(PackLocationInfo, Pack.ResourcesSupplier, int)
  */
 public class FallbackMetadataPackResources extends AbstractPackResources {
 
@@ -41,12 +42,13 @@ public class FallbackMetadataPackResources extends AbstractPackResources {
     private final PackMetadataSection fallbackMetadata;
 
     /**
-     * @param packId 由 {@link #packId()} 上报的包 id
+     * @param packType 用于决定合成元数据的包格式
+     * @param location 由 {@link #location()} 上报的包位置信息
      * @param delegate 实际提供内容的包
      * @param description {@code delegate} 没有 {@code pack.mcmeta} 时使用的描述
      */
-    public FallbackMetadataPackResources(PackType packType, String packId, PackResources delegate, Component description) {
-        super(packId, false);
+    public FallbackMetadataPackResources(PackType packType, PackLocationInfo location, PackResources delegate, Component description) {
+        super(location);
         this.delegate = delegate;
         this.fallbackMetadata = new PackMetadataSection(description, packType == PackType.SERVER_DATA ? CgccPackLoader.DATA_PACK_FORMAT : CgccPackLoader.RESOURCE_PACK_FORMAT, Optional.empty());
     }
