@@ -4,6 +4,7 @@ import dev.xcolorful.cgccompat.packloader.CgccPackLoader;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.FilePackResources;
 import net.minecraft.server.packs.PackLocationInfo;
+import net.minecraft.server.packs.PackMetadataResources;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackSelectionConfig;
 import net.minecraft.server.packs.PackType;
@@ -22,6 +23,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * 把配置目录的每个直接子项注册成一个包。
@@ -148,13 +150,14 @@ public class ExtraPackRepositorySource implements RepositorySource {
 
         Pack.ResourcesSupplier resources = new Pack.ResourcesSupplier() {
             @Override
-            public PackResources openPrimary(PackLocationInfo packLocationInfo) {
-                return new FallbackMetadataPackResources(ExtraPackRepositorySource.this.packType, packLocationInfo, supplier.openPrimary(packLocationInfo), description);
+            public PackMetadataResources openMetadata(PackLocationInfo packLocationInfo) {
+                return new FallbackMetadataPackResources(ExtraPackRepositorySource.this.packType, packLocationInfo, supplier.openMetadata(packLocationInfo), description);
             }
 
             @Override
-            public PackResources openFull(PackLocationInfo packLocationInfo, Pack.Metadata metadata) {
-                return new FallbackMetadataPackResources(ExtraPackRepositorySource.this.packType, packLocationInfo, supplier.openFull(packLocationInfo, metadata), description);
+            public Stream<PackResources> openResources(PackLocationInfo packLocationInfo, Pack.Metadata metadata) {
+                // 合成的元数据只影响包能否被发现与启用，内容访问仍原样交给真实包。
+                return supplier.openResources(packLocationInfo, metadata);
             }
         };
 

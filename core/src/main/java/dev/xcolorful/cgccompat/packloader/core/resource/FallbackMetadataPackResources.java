@@ -2,24 +2,21 @@ package dev.xcolorful.cgccompat.packloader.core.resource;
 
 import dev.xcolorful.cgccompat.packloader.CgccPackLoader;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import net.minecraft.server.packs.AbstractPackResources;
+import net.minecraft.server.packs.AbstractPackMetadataResources;
 import net.minecraft.server.packs.PackLocationInfo;
-import net.minecraft.server.packs.PackResources;
+import net.minecraft.server.packs.PackMetadataResources;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.metadata.MetadataSectionType;
 import net.minecraft.server.packs.metadata.pack.PackFormat;
 import net.minecraft.server.packs.metadata.pack.PackMetadataSection;
 import net.minecraft.server.packs.resources.IoSupplier;
 import net.minecraft.server.packs.repository.Pack;
-import net.minecraft.util.InclusiveRange;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Set;
 
 /**
  * 代理真实的包，并在其缺少 {@code pack.mcmeta} 时补上一份合成元数据。
@@ -34,29 +31,36 @@ import java.util.Set;
  * <p>真实元数据优先，只有确实缺失的 section 才会被替换。Forge 合并出的 {@code mod_resources}
  * 包通过 {@code net.minecraftforge.resource.DelegatingPackResources} 做了同样的事。
  *
- * @see AbstractPackResources#getMetadataSection(MetadataSectionType)
+ * <p>元数据读取走的是
+ * {@link net.minecraft.server.packs.repository.Pack.ResourcesSupplier#openMetadata(PackLocationInfo)}
+ * 这条独立路径，因此本类只需实现 {@link PackMetadataResources}，内容访问仍由 {@code delegate} 自己承担。
+ *
+ * @see AbstractPackMetadataResources#getMetadataSection(MetadataSectionType)
  * @see net.minecraft.server.packs.repository.Pack#readPackMetadata(PackLocationInfo, Pack.ResourcesSupplier, PackFormat, PackType)
  */
-public class FallbackMetadataPackResources extends AbstractPackResources {
+public class FallbackMetadataPackResources extends AbstractPackMetadataResources {
 
-    private final PackResources delegate;
+    private final PackMetadataResources delegate;
     private final MetadataSectionType<PackMetadataSection> packMetadataType;
     private final PackMetadataSection fallbackMetadata;
 
     /**
      * @param packType 用于决定合成元数据的包格式
      * @param location 由 {@link #location()} 上报的包位置信息
-     * @param delegate 实际提供内容的包
+     * @param delegate 实际提供元数据的包
      * @param description {@code delegate} 没有 {@code pack.mcmeta} 时使用的描述
      */
-    public FallbackMetadataPackResources(PackType packType, PackLocationInfo location, PackResources delegate, Component description) {
+    public FallbackMetadataPackResources(PackType packType, PackLocationInfo location, PackMetadataResources delegate, Component description) {
         super(location);
         this.delegate = delegate;
         this.packMetadataType = PackMetadataSection.forPackType(packType);
+        // 26.3 起包格式是 major.minor，PackCompatibility 按「声明上界 < 当前版本」判 TOO_OLD，
+        // 而 PackFormat.of(major) 的 minor 是 0，落在当前 minor 之下。合成元数据本来就不描述具体
+        // 内容版本，取整个 minor 区间，免得原版每抬一次 minor 就把包标成旧版本。
         this.fallbackMetadata = new PackMetadataSection(description,
-                new InclusiveRange<>(PackFormat.of(packType == PackType.SERVER_DATA
+                PackFormat.of(packType == PackType.SERVER_DATA
                         ? CgccPackLoader.DATA_PACK_FORMAT
-                        : CgccPackLoader.RESOURCE_PACK_FORMAT)));
+                        : CgccPackLoader.RESOURCE_PACK_FORMAT).minorRange());
     }
 
     @Nullable
@@ -79,22 +83,6 @@ public class FallbackMetadataPackResources extends AbstractPackResources {
     @Override
     public IoSupplier<InputStream> getRootResource(String... paths) {
         return this.delegate.getRootResource(paths);
-    }
-
-    @Nullable
-    @Override
-    public IoSupplier<InputStream> getResource(PackType type, Identifier location) {
-        return this.delegate.getResource(type, location);
-    }
-
-    @Override
-    public void listResources(PackType type, String namespace, String path, PackResources.ResourceOutput output) {
-        this.delegate.listResources(type, namespace, path, output);
-    }
-
-    @Override
-    public Set<String> getNamespaces(PackType type) {
-        return this.delegate.getNamespaces(type);
     }
 
     @Override
