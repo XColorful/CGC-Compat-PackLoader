@@ -37,8 +37,8 @@ Add additional data pack and resource pack directories.
 ## Main Features
 
 This mod does two things:
-- Uses the directory list in `./config/cgccpackloader.json` as additional data pack and resource pack directories, with _./tacz/_ added by default
-- Allows data packs and resource packs in this directory without `pack.mcmeta` to load normally
+1. Uses the directory list in `./config/cgccpackloader.json` as additional data pack and resource pack directories, with _./tacz/_ added by default
+2. Allows data packs and resource packs in this directory without `pack.mcmeta` to load normally
 
 ## Content disclosures
 
