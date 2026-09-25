@@ -28,11 +28,17 @@ public class CgccPackLoader {
     /** 配置文件名，位于平台的 config 目录下。 */
     public static final String FILE_NAME = MOD_ID + ".json";
 
+    /** 客户端文件名，与 {@link #FILE_NAME} 同目录，记录已经默认勾选过的资源包。 */
+    public static final String CLIENT_FILE_NAME = MOD_ID + "-client.json";
+
     /** 游戏根目录，用于解析配置中的相对路径。 */
     private static Path gameDirectory;
 
     /** 模组配置文件的绝对路径。 */
     private static Path configFile;
+
+    /** 客户端记录文件的绝对路径。 */
+    private static Path clientFile;
 
     /**
      * 记录平台侧提供的路径。重复调用会被忽略。
@@ -46,6 +52,7 @@ public class CgccPackLoader {
 
         CgccPackLoader.gameDirectory = gameDirectory;
         CgccPackLoader.configFile = configDirectory.resolve(FILE_NAME);
+        CgccPackLoader.clientFile = configDirectory.resolve(CLIENT_FILE_NAME);
 
         initialized = true;
     }
@@ -62,5 +69,12 @@ public class CgccPackLoader {
      */
     public static Path configFile() {
         return configFile;
+    }
+
+    /**
+     * @return 客户端记录文件的绝对路径
+     */
+    public static Path clientFile() {
+        return clientFile;
     }
 }
