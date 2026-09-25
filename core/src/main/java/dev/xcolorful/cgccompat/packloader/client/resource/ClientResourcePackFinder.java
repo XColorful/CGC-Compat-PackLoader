@@ -21,7 +21,7 @@ import java.util.function.Consumer;
  */
 public final class ClientResourcePackFinder {
 
-    /** 资源包来源；{@code required} 为 false，因此包只出现在选择界面，需玩家手动启用。 */
+    /** 资源包来源；不加来源后缀，与放在 {@code resourcepacks} 目录里的包一致。 */
     private static final PackSource PACK_SOURCE = PackSource.DEFAULT;
 
     private ClientResourcePackFinder() {
@@ -30,9 +30,12 @@ public final class ClientResourcePackFinder {
     /**
      * 把配置中的额外目录注册为资源包 finder。
      *
+     * <p>默认勾选一次由 {@link ClientPackDefaults} 补上，它自己读客户端文件里的开关。
+     *
      * @param register 平台侧提供的注册回调，对应 {@code AddPackFindersEvent#addRepositorySource}
      */
     public static void onAddPackFinders(Consumer<RepositorySource> register) {
-        register.accept(ExtraPackRepositorySource.fromConfig(PackType.CLIENT_RESOURCES, PACK_SOURCE));
+        register.accept(ClientPackDefaults.decorate(
+                ExtraPackRepositorySource.fromConfig(PackType.CLIENT_RESOURCES, PACK_SOURCE)));
     }
 }
